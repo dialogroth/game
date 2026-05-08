@@ -6,9 +6,9 @@ window.onload = function () {
     const socket = io();
 
     let players = {};
-    let bullets = [];
+    let bullets = {};
 
-    let name = prompt("名前入れて");
+    let name = prompt("名前");
 
     socket.emit("join", name);
 
@@ -18,19 +18,6 @@ window.onload = function () {
     myPlayer.y = 100;
 
     game.rootScene.addChild(myPlayer);
-
-    // 他プレイヤー描画
-    function drawPlayers() {
-        game.rootScene.childNodes = [myPlayer];
-        Object.keys(players).forEach(id => {
-            const p = players[id];
-            const sp = new Sprite(32, 32);
-            sp.backgroundColor = "blue";
-            sp.x = p.x;
-            sp.y = p.y;
-            game.rootScene.addChild(sp);
-        });
-    }
 
     game.rootScene.on("enterframe", () => {
 
@@ -43,11 +30,8 @@ window.onload = function () {
             x: myPlayer.x,
             y: myPlayer.y
         });
-
-        drawPlayers();
     });
 
-    // 弾撃ち
     window.addEventListener("keydown", (e) => {
         if (e.code === "Space") {
             socket.emit("shoot");
@@ -56,16 +40,41 @@ window.onload = function () {
 
     socket.on("players", (data) => {
         players = data;
+        drawPlayers();
     });
 
-    socket.on("shot", (data) => {
-        let b = new Sprite(10, 10);
-        b.backgroundColor = "yellow";
-        b.x = 200;
-        b.y = 200;
-        game.rootScene.addChild(b);
-        bullets.push(b);
+    socket.on("bullets", (data) => {
+        bullets = data;
+        drawBullets();
     });
+
+    function drawPlayers() {
+
+        game.rootScene.childNodes = [myPlayer];
+
+        Object.values(players).forEach(p => {
+
+            const sp = new Sprite(32, 32);
+            sp.backgroundColor = "blue";
+            sp.x = p.x;
+            sp.y = p.y;
+
+            game.rootScene.addChild(sp);
+        });
+    }
+
+    function drawBullets() {
+
+        Object.values(bullets).forEach(b => {
+
+            const sp = new Sprite(10, 10);
+            sp.backgroundColor = "yellow";
+            sp.x = b.x;
+            sp.y = b.y;
+
+            game.rootScene.addChild(sp);
+        });
+    }
 
     game.start();
 };
