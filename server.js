@@ -9,88 +9,54 @@ const io = new Server(server);
 app.use(express.static("public"));
 
 let players = {};
-let bullets = [];
+let choices = {};
+
+function judge(a, b) {
+    if (a === b) return "draw";
+    if (
+        (a === 0 && b === 1) ||
+        (a === 1 && b === 2) ||
+        (a === 2 && b === 0)
+    ) {
+        return "p1";
+    }
+    return "p2";
+}
 
 io.on("connection", (socket) => {
 
-    socket.on("join", (name) => {
-        players[socket.id] = {
-            name,
-            x: 100,
-            y: 100,
-            hp: 5
-        };
+    players[socket.id] = true;
 
-        io.emit("players", players);
-    });
+    socket.on("choice", (value) => {
 
-    socket.on("move", (data) => {
-        if (!players[socket.id]) return;
+        choices[socket.id] = value;
 
-        players[socket.id].x = data.x;
-        players[socket.id].y = data.y;
+        const ids = Object.keys(choices);
 
-        io.emit("players", players);
-    });
+        if (ids.length === 2) {
 
-    socket.on("shoot", () => {
-        if (!players[socket.id]) return;
+            const p1 = ids[0];
+            const p2 = ids[1];
 
-        bullets.push({
-            id: socket.id,
-            x: players[socket.id].x,
-            y: players[socket.id].y,
-            vx: 0,
-            vy: -5
-        });
+            const result = judge(choices[p1], choices[p2]);
+
+            io.emit("result", {
+                p1: choices[p1],
+                p2: choices[p2],
+                result
+            });
+
+            choices = {};
+        }
     });
 
     socket.on("disconnect", () => {
         delete players[socket.id];
-        io.emit("players", players);
+        delete choices[socket.id];
     });
 });
 
-// ゲームループ（サーバー側で処理）
-setInterval(() => {
-
-    // 弾移動
-    bullets.forEach(b => {
-        b.y += b.vy;
-    });
-
-    // 当たり判定
-    bullets.forEach((b, i) => {
-        Object.keys(players).forEach(id => {
-
-            if (id === b.id) return;
-
-            const p = players[id];
-
-            if (!p) return;
-
-            const dx = p.x - b.x;
-            const dy = p.y - b.y;
-
-            if (Math.sqrt(dx * dx + dy * dy) < 20) {
-                p.hp -= 1;
-                bullets.splice(i, 1);
-
-                if (p.hp <= 0) {
-                    delete players[id];
-                }
-
-                io.emit("players", players);
-            }
-        });
-    });
-
-    io.emit("bullets", bullets);
-
-}, 100);
-
 const PORT = process.env.PORT || 3000;
-
 server.listen(PORT, "0.0.0.0", () => {
     console.log("Server running");
 });

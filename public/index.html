@@ -1,17 +1,21 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <meta charset="utf-8">
-    <title>Online Game</title>
+<meta charset="utf-8">
+<title>Janken Game</title>
 </head>
-
 <body>
 
-    <script src="enchant.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="main.js"></script>
+<h1>じゃんけん対戦</h1>
+
+<button onclick="select(0)">グー</button>
+<button onclick="select(1)">チョキ</button>
+<button onclick="select(2)">パー</button>
+
+<h2 id="status"></h2>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="main.js"></script>
 
 </body>
-
 </html>
