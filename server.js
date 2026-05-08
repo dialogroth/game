@@ -12,24 +12,22 @@ let players = {};
 
 io.on("connection", (socket) => {
 
-    console.log("接続:", socket.id);
+    socket.on("join", (name) => {
+        players[socket.id] = {
+            name: name,
+            x: 100,
+            y: 100,
+            hp: 3
+        };
 
-    players[socket.id] = {
-        x: 100,
-        y: 100
-    };
-
-    socket.emit("currentPlayers", players);
-
-    socket.broadcast.emit("newPlayer", {
-        id: socket.id,
-        x: 100,
-        y: 100
+        io.emit("players", players);
     });
 
     socket.on("move", (data) => {
+        if (!players[socket.id]) return;
 
-        players[socket.id] = data;
+        players[socket.id].x = data.x;
+        players[socket.id].y = data.y;
 
         socket.broadcast.emit("playerMoved", {
             id: socket.id,
@@ -38,16 +36,26 @@ io.on("connection", (socket) => {
         });
     });
 
+    socket.on("shoot", () => {
+        socket.broadcast.emit("shot", {
+            id: socket.id
+        });
+    });
+
+    socket.on("hit", (targetId) => {
+        if (players[targetId]) {
+            players[targetId].hp -= 1;
+        }
+        io.emit("players", players);
+    });
+
     socket.on("disconnect", () => {
-
         delete players[socket.id];
-
-        io.emit("playerDisconnected", socket.id);
+        io.emit("players", players);
     });
 });
 
 const PORT = process.env.PORT || 3000;
-
 server.listen(PORT, "0.0.0.0", () => {
-    console.log("Server Start");
+    console.log("Server running");
 });
