@@ -2,17 +2,17 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Janken Game</title>
+<title>Janken Online</title>
 </head>
 <body>
 
 <h1>じゃんけん対戦</h1>
 
+<h2 id="status">接続中...</h2>
+
 <button onclick="select(0)">グー</button>
 <button onclick="select(1)">チョキ</button>
 <button onclick="select(2)">パー</button>
-
-<h2 id="status"></h2>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="main.js"></script>

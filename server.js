@@ -9,10 +9,12 @@ const io = new Server(server);
 app.use(express.static("public"));
 
 let players = {};
-let choices = {};
+let order = []; // 入室順
 
+// 勝敗判定
 function judge(a, b) {
     if (a === b) return "draw";
+
     if (
         (a === 0 && b === 1) ||
         (a === 1 && b === 2) ||
@@ -20,43 +22,72 @@ function judge(a, b) {
     ) {
         return "p1";
     }
+
     return "p2";
 }
 
 io.on("connection", (socket) => {
 
-    players[socket.id] = true;
+    // 2人制限
+    if (order.length >= 2) {
+        socket.emit("full");
+        return;
+    }
 
+    order.push(socket.id);
+
+    players[socket.id] = {
+        choice: null,
+        index: order.length // P1 or P2固定
+    };
+
+    // 接続時情報
+    socket.emit("init", {
+        index: players[socket.id].index
+    });
+
+    io.emit("players", players);
+
+    // じゃんけん選択
     socket.on("choice", (value) => {
 
-        choices[socket.id] = value;
+        if (!players[socket.id]) return;
 
-        const ids = Object.keys(choices);
+        players[socket.id].choice = value;
 
-        if (ids.length === 2) {
+        if (order.length < 2) return;
 
-            const p1 = ids[0];
-            const p2 = ids[1];
+        const p1 = order[0];
+        const p2 = order[1];
 
-            const result = judge(choices[p1], choices[p2]);
+        if (!players[p1] || !players[p2]) return;
+        if (players[p1].choice === null || players[p2].choice === null) return;
 
-            io.emit("result", {
-                p1: choices[p1],
-                p2: choices[p2],
-                result
-            });
+        const result = judge(players[p1].choice, players[p2].choice);
 
-            choices = {};
-        }
+        io.emit("result", {
+            p1: players[p1].choice,
+            p2: players[p2].choice,
+            result
+        });
+
+        // リセット
+        players[p1].choice = null;
+        players[p2].choice = null;
     });
 
     socket.on("disconnect", () => {
+
+        order = order.filter(id => id !== socket.id);
+
         delete players[socket.id];
-        delete choices[socket.id];
+
+        io.emit("players", players);
     });
 });
 
 const PORT = process.env.PORT || 3000;
+
 server.listen(PORT, "0.0.0.0", () => {
-    console.log("Server running");
+    console.log("Server running on port " + PORT);
 });
